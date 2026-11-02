@@ -1,7 +1,24 @@
 /* Nos voyages — carnet de voyages de Chloé et Mathieu */
 var SB_URL='https://ihucxnmqnhevfvlamgwc.supabase.co';
 var SB_KEY='sb_publishable_kEE6pdoje5XIxfyiI9J4FA_qJ4Z-3-p';
-var sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+var LOCAL=!!window.MODE_LOCAL;
+var sb=LOCAL?null:supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+
+/* ---------- Mode « tout dans le téléphone » ---------- */
+var CLE_LOCALE='voyages-local-v1';
+function lireLocal(){try{return JSON.parse(localStorage.getItem(CLE_LOCALE)||'[]')}catch(e){return[]}}
+function ecrireLocal(l){try{localStorage.setItem(CLE_LOCALE,JSON.stringify(l));return true}catch(e){return false}}
+function nouvelId(){return (crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2))}
+async function rpcLocal(nom,args){
+  var l=lireLocal();
+  if(nom==='voyages_liste')return{data:l.slice().sort(function(a,b){return b.annee-a.annee})};
+  if(nom==='voyages_supprimer'){l=l.filter(function(r){return r.id!==args.p_id});return ecrireLocal(l)?{data:null}:{error:{message:'stockage'}}}
+  if(nom==='voyages_enregistrer'){var d=args.p_data;
+    if(!args.p_id){var r=Object.assign({id:nouvelId(),cree_le:new Date().toISOString()},d);['raison','ville','fin','debut'].forEach(function(k){if(r[k]==='')r[k]=null});l.push(r)}
+    else l=l.map(function(r){if(r.id!==args.p_id)return r;var n=Object.assign({},r,d);['raison','ville','fin','debut'].forEach(function(k){if(n[k]==='')n[k]=null});return n});
+    return ecrireLocal(l)?{data:args.p_id||l[l.length-1].id}:{error:{message:'stockage'}}}
+  return{data:null}
+}
 
 var NOMS={chloe:'Chloé',mathieu:'Mathieu',ensemble:'À deux'};
 var $=function(id){return document.getElementById(id)};
@@ -45,7 +62,7 @@ var S={profil:'ensemble',type:'monde',inc:true,rows:[],delAsk:null,edit:null,f:{
 /* ---------- Connexion (pseudo + mot de passe) ---------- */
 var TOKEN=null;try{TOKEN=localStorage.getItem('voyages-token')}catch(e){}
 function memo(t){TOKEN=t;try{t?localStorage.setItem('voyages-token',t):localStorage.removeItem('voyages-token')}catch(e){}}
-function rpc(nom,args){return sb.rpc(nom,Object.assign({p_token:TOKEN},args||{})).then(function(r){if(r.error&&/session_invalide/.test(r.error.message)){memo(null);vue('vLogin')}return r})}
+function rpc(nom,args){if(LOCAL)return rpcLocal(nom,args);return sb.rpc(nom,Object.assign({p_token:TOKEN},args||{})).then(function(r){if(r.error&&/session_invalide/.test(r.error.message)){memo(null);vue('vLogin')}return r})}
 $('fLogin').onsubmit=async function(e){e.preventDefault();var m=$('lMsg');m.className='msg';m.textContent='';$('lGo').disabled=true;
   var pseudo=norm($('lPseudo').value).replace(/\s/g,''),pw=$('lPw').value;
   var r=await sb.rpc('voyages_connexion',{p_pseudo:pseudo,p_mdp:pw});
@@ -55,10 +72,11 @@ $('fLogin').onsubmit=async function(e){e.preventDefault();var m=$('lMsg');m.clas
   memo(r.data.token);try{localStorage.setItem('voyages-nom',r.data.nom)}catch(x){}
   demarrer();
 };
-document.querySelectorAll('[data-logout]').forEach(function(b){b.onclick=async function(){if(TOKEN)await sb.rpc('voyages_deconnexion',{p_token:TOKEN});memo(null);location.reload()}});
+document.querySelectorAll('[data-logout]').forEach(function(b){if(LOCAL){b.textContent='Sauvegarde';b.onclick=function(){$('sauv').hidden=false};return}b.onclick=async function(){if(TOKEN)await sb.rpc('voyages_deconnexion',{p_token:TOKEN});memo(null);location.reload()}});
 
 function vue(v){['vLogin','vApp'].forEach(function(id){$(id).hidden=id!==v})}
 function demarrer(){
+  if(LOCAL){vue('vApp');initCartes();charger();return}
   if(!TOKEN){vue('vLogin');return}
   vue('vApp');initCartes();charger();
 }
@@ -66,7 +84,7 @@ function demarrer(){
 /* ---------- Données ---------- */
 async function charger(){
   var r=await rpc('voyages_liste');
-  if(!TOKEN)return;
+  if(!TOKEN&&!LOCAL)return;
   if(r.error){$('etat').textContent='Impossible de charger les voyages. Vérifiez votre connexion.';return}
   $('etat').textContent='';S.rows=r.data||[];render();
 }
@@ -270,3 +288,24 @@ if('serviceWorker' in navigator)window.addEventListener('load',function(){naviga
 demarrer();
 
 $('f').addEventListener('input',function(){$('fm').textContent=''});
+
+/* ---------- Sauvegarde : exporter / importer un fichier ---------- */
+if(LOCAL){
+  $('sauvX').onclick=function(){$('sauv').hidden=true};
+  $('sauv').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
+  $('exp').onclick=async function(){
+    var l=lireLocal(),d=new Date(),nom='nos-voyages-'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'.json';
+    var blob=new Blob([JSON.stringify({app:'nos-voyages',version:1,exporte_le:d.toISOString(),voyages:l},null,1)],{type:'application/json'});
+    var f=new File([blob],nom,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'Nos voyages'});$('sMsg').textContent='Fichier envoyé ('+l.length+' voyages).';return}catch(e){if(e.name==='AbortError')return}}
+    var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=nom;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},2000);
+    $('sMsg').textContent='Fichier enregistré ('+l.length+' voyages).';
+  };
+  $('imp').onchange=async function(){var f=this.files[0];if(!f)return;this.value='';
+    try{var j=JSON.parse(await f.text()),inc=Array.isArray(j)?j:j.voyages;if(!Array.isArray(inc))throw 0;
+      var l=lireLocal(),ids={},aj=0,maj=0;l.forEach(function(r,i){ids[r.id]=i});
+      inc.forEach(function(r){if(!r||!r.id||!r.lieu||!r.annee||!r.type||!r.profil)return;
+        if(ids[r.id]==null){l.push(r);aj++}else{l[ids[r.id]]=r;maj++}});
+      ecrireLocal(l);$('sMsg').textContent=aj+' voyage'+(aj>1?'s':'')+' ajouté'+(aj>1?'s':'')+(maj?', '+maj+' mis à jour':'')+'.';charger();
+    }catch(e){$('sMsg').textContent='Ce fichier n’est pas une sauvegarde de « Nos voyages ».'}};
+}

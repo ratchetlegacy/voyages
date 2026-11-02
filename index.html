@@ -185,6 +185,17 @@ input:focus{outline:none;border-color:var(--stamp)}
   <button class="fab" id="fab">+ Ajouter</button>
 </main>
 
+<div class="sheet-bg" id="sauv" hidden>
+  <div class="sheet">
+    <h3>Sauvegarde</h3>
+    <p style="margin:0;color:var(--muted)">Les voyages sont enregistrés uniquement dans ce téléphone. Exportez un fichier de temps en temps pour ne rien perdre, ou pour l’envoyer à l’autre et rassembler vos deux carnets.</p>
+    <button class="btn" id="exp" type="button">Exporter mes voyages</button>
+    <label class="btn ghost" style="text-align:center;display:block;cursor:pointer;color:var(--ink)">Importer un fichier<input id="imp" type="file" accept=".json,application/json" hidden></label>
+    <p class="msg ok" id="sMsg" role="status"></p>
+    <button class="btn ghost" id="sauvX" type="button">Fermer</button>
+  </div>
+</div>
+
 <div class="sheet-bg" id="sheet" hidden>
   <form class="sheet" id="f" autocomplete="off">
     <h3 id="ft">Ajouter un voyage</h3>
@@ -207,7 +218,7 @@ input:focus{outline:none;border-color:var(--stamp)}
   </form>
 </div>
 
-<script src="supabase.js"></script>
+<script>if(window.MODE_LOCAL===undefined)document.write('<script src="supabase.js"><\/script>')</script>
 <script src="d3-array.min.js"></script>
 <script src="d3-geo.min.js"></script>
 <script src="topojson-client.min.js"></script>

@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nos voyages</title>
+<meta name="theme-color" content="#12302F">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nos voyages">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#EEF3F2; --card:#FFFFFF; --ink:#12302F; --muted:#5B706E; --line:#D5E0DE; --soft:#E2ECEA;
+  --sea:#DCEBEA; --land:#C9D8D5; --landb:#FFFFFF; --stamp:#D64933;
+  --chloe:#D9576B; --mathieu:#2F6FB5; --deux:#1D8A73;
+  --disp:'Bricolage Grotesque',Georgia,serif; --body:'Figtree',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0F1A1A; --card:#172625; --ink:#E6F0EE; --muted:#9AB0AD; --line:#29403E; --soft:#1F3331;
+  --sea:#13201F; --land:#2B403E; --landb:#172625; --stamp:#F07A63;
+  --chloe:#F0849A; --mathieu:#79A9E6; --deux:#4FC3A4; color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.5 var(--body)}
+body{padding-top:env(safe-area-inset-top);padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--stamp);outline-offset:2px}
+h1,h2,h3{font-family:var(--disp);margin:0;line-height:1.05}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+[hidden]{display:none!important}
+
+/* Connexion */
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login form{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:28px;display:flex;flex-direction:column;gap:14px}
+.login h1{font-size:34px;font-weight:800}.login h1 span{color:var(--stamp)}
+.login p{margin:0;color:var(--muted);font-size:15px}
+.seg2{display:flex;background:var(--soft);border-radius:999px;padding:4px}
+.seg2 button{flex:1;border:0;background:transparent;padding:9px;border-radius:999px;font-weight:600;color:var(--muted)}
+.seg2 button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+label{display:flex;flex-direction:column;gap:5px;font-size:13.5px;font-weight:600;color:var(--muted);min-width:0}
+input,select{padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);width:100%;font-size:16px}
+input:focus{outline:none;border-color:var(--stamp)}
+.btn{border:0;border-radius:12px;padding:13px 18px;font-weight:700;background:var(--ink);color:var(--bg)}
+.btn.ghost{background:transparent;color:var(--muted);border:1.5px solid var(--line)}
+.msg{margin:0;color:var(--stamp);font-weight:600;font-size:14px}.msg:empty{display:none}
+.ok{color:var(--deux)!important}
+
+/* En-tête */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:16px}
+.top h1{font-size:28px;font-weight:800}.top h1 span{color:var(--stamp)}
+.icon-btn{border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:8px 12px;font-size:14px;font-weight:600;color:var(--muted)}
+
+.profils{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.prof{--c:var(--deux);border:2px solid var(--line);background:var(--card);border-radius:16px;padding:10px 6px;display:flex;align-items:center;justify-content:center;gap:8px}
+.prof .av{width:32px;height:32px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center;font:800 15px var(--disp);flex:0 0 auto}
+.prof b{font-size:15px}
+.prof[aria-pressed="true"]{border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent)}
+.prof[data-p="chloe"]{--c:var(--chloe)}.prof[data-p="mathieu"]{--c:var(--mathieu)}
+
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:14px}
+.seg{display:inline-flex;background:var(--soft);border-radius:999px;padding:4px}
+.seg button{border:0;background:transparent;padding:8px 16px;border-radius:999px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);cursor:pointer;flex-direction:row}
+.toggle input{width:18px;height:18px;accent-color:var(--deux)}
+
+/* Carte */
+.map{position:relative;margin-top:14px;background:var(--sea);border-radius:20px;overflow:hidden;border:1px solid var(--line);touch-action:none;user-select:none}
+.map svg{display:block;width:100%;height:auto}
+.map.france svg{max-height:62vh;margin:0 auto}
+.land{fill:var(--land);stroke:var(--landb);stroke-width:.6;vector-effect:non-scaling-stroke}
+.land.v{fill:color-mix(in srgb,var(--c,var(--deux)) 80%,var(--land))}
+.pin{cursor:pointer}
+.pin circle{stroke:var(--card);vector-effect:non-scaling-stroke;stroke-width:2}
+.zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+.zoom button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-size:20px;font-weight:700;color:var(--ink)}
+.tip{position:absolute;left:10px;right:10px;bottom:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:14.5px;box-shadow:0 8px 20px -10px rgba(0,0,0,.4)}
+.tip b{font-size:16px}
+.place{position:absolute;left:10px;right:10px;top:10px;background:var(--stamp);color:#fff;border-radius:12px;padding:10px 14px;font-weight:700;font-size:14.5px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.place button{border:0;background:rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:5px 10px;font-weight:700}
+.map.placing{cursor:crosshair}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.st{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.st b{display:block;font:800 26px/1 var(--disp);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(max-width:480px){.st b{font-size:21px}.st{padding:11px 12px}}
+.st span{color:var(--muted);font-size:13px}
+
+/* Liste */
+#liste{display:flex;flex-direction:column;gap:22px;margin-top:22px}
+.annee h2{font-size:26px;font-weight:800;display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.annee h2 small{font:600 13px var(--body);color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.v{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;gap:12px;align-items:flex-start}
+.flag{font-size:26px;line-height:1;flex:0 0 auto;width:42px;height:42px;border-radius:50%;background:var(--soft);display:grid;place-items:center}
+.v .txt{min-width:0;flex:1}
+.v b{display:block;font-size:16.5px;overflow-wrap:anywhere}
+.v .r{color:var(--muted);font-size:14px}
+.tag{display:inline-block;margin-top:5px;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;color:#fff;background:var(--deux)}
+.tag.chloe{background:var(--chloe)}.tag.mathieu{background:var(--mathieu)}
+.tag.warn{background:var(--soft);color:var(--stamp)}
+.acts{display:flex;flex-wrap:wrap;gap:2px;margin-top:6px}
+.acts button{border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:600;padding:4px 6px;border-radius:6px}
+.acts button.sure{background:var(--stamp);color:#fff}
+.vide{text-align:center;background:var(--card);border:2px dashed var(--line);border-radius:18px;padding:30px 20px;color:var(--muted)}
+.vide b{display:block;font:800 20px var(--disp);color:var(--ink);margin-bottom:6px}
+
+/* Bouton + et fenêtre d'ajout */
+.fab{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));z-index:20;border:0;border-radius:999px;background:var(--stamp);color:#fff;font:700 16px var(--body);padding:16px 22px;box-shadow:0 12px 26px -10px rgba(0,0,0,.5)}
+.sheet-bg{position:fixed;inset:0;z-index:30;background:rgba(5,15,15,.5);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
+@media(min-width:700px){.sheet-bg{align-items:center}.sheet{border-radius:22px}}
+.sheet h3{font-size:22px}
+.who{display:flex;gap:8px;flex-wrap:wrap}
+.who button{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;font-weight:600}
+.who button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.row{display:grid;grid-template-columns:110px 1fr;gap:10px}
+.sugg{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:4px}
+.sugg:empty{display:none}
+.sugg button{border:0;border-bottom:1px solid var(--line);background:var(--bg);text-align:left;padding:10px 12px;font-size:15px;color:var(--ink)}
+.sugg button:last-child{border-bottom:0}
+.sugg small{color:var(--muted)}
+.coord{font-size:13.5px;color:var(--muted)}
+.foot{display:flex;gap:10px}.foot .btn{flex:1}
+.etat{text-align:center;color:var(--muted);padding:18px}
+.etat:empty{display:none}
+</style>
+</head>
+<body>
+
+<section class="login" id="vLogin" hidden>
+  <form id="fLogin" autocomplete="on">
+    <h1>Nos <span>voyages</span></h1>
+    <p>Le carnet de voyages de Chloé et Mathieu.</p>
+    <div class="seg2"><button type="button" data-m="in" aria-pressed="true">Se connecter</button><button type="button" data-m="up" aria-pressed="false">Créer un compte</button></div>
+    <label>E-mail<input id="lEmail" type="email" autocomplete="email" required></label>
+    <label>Mot de passe<input id="lPw" type="password" autocomplete="current-password" minlength="6" required></label>
+    <button class="btn" id="lGo" type="submit">Se connecter</button>
+    <p class="msg" id="lMsg" role="status"></p>
+  </form>
+</section>
+
+<section class="login" id="vRefus" hidden>
+  <form onsubmit="return false">
+    <h1>Accès <span>en attente</span></h1>
+    <p>Le compte <b id="rEmail"></b> n’est pas encore autorisé à ouvrir ce carnet. Demandez à l’ajouter, puis rechargez.</p>
+    <button class="btn" type="button" onclick="location.reload()">Recharger</button>
+    <button class="btn ghost" type="button" data-logout>Changer de compte</button>
+  </form>
+</section>
+
+<main id="vApp" hidden>
+  <div class="wrap">
+    <div class="top"><h1>Nos <span>voyages</span></h1><button class="icon-btn" data-logout>Déconnexion</button></div>
+
+    <div class="profils" role="group" aria-label="Profil">
+      <button class="prof" data-p="chloe" aria-pressed="false"><span class="av">C</span><b>Chloé</b></button>
+      <button class="prof" data-p="mathieu" aria-pressed="false"><span class="av">M</span><b>Mathieu</b></button>
+      <button class="prof" data-p="ensemble" aria-pressed="true"><span class="av">♥</span><b>À deux</b></button>
+    </div>
+
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Carte">
+        <button data-t="monde" aria-pressed="true">Monde</button>
+        <button data-t="france" aria-pressed="false">France</button>
+      </div>
+      <label class="toggle" id="incW" hidden><input type="checkbox" id="inc" checked>Avec les voyages à deux</label>
+    </div>
+
+    <div class="map" id="map">
+      <svg id="svg" aria-label="Carte des voyages"></svg>
+      <div class="zoom"><button id="zIn" aria-label="Zoomer">+</button><button id="zOut" aria-label="Dézoomer">−</button><button id="zR" aria-label="Recentrer" style="font-size:15px">⟲</button></div>
+      <div class="tip" id="tip" hidden></div>
+      <div class="place" id="place" hidden><span id="placeT"></span><button id="placeX">Annuler</button></div>
+    </div>
+
+    <div class="stats">
+      <div class="st"><b id="s1">0</b><span id="s1l">voyages</span></div>
+      <div class="st"><b id="s2">0</b><span id="s2l">pays</span></div>
+      <div class="st"><b id="s3">—</b><span>années</span></div>
+    </div>
+
+    <p class="etat" id="etat">Chargement…</p>
+    <div id="liste"></div>
+  </div>
+  <button class="fab" id="fab">+ Ajouter</button>
+</main>
+
+<div class="sheet-bg" id="sheet" hidden>
+  <form class="sheet" id="f" autocomplete="off">
+    <h3 id="ft">Ajouter un voyage</h3>
+    <div><div style="font-size:13.5px;font-weight:600;color:var(--muted);margin-bottom:6px">Pour qui ?</div>
+      <div class="who" id="who"><button type="button" data-w="chloe">Chloé</button><button type="button" data-w="mathieu">Mathieu</button><button type="button" data-w="ensemble">À deux</button></div></div>
+    <div class="seg" id="ftype" style="align-self:flex-start"><button type="button" data-t="monde">À l’étranger</button><button type="button" data-t="france">En France</button></div>
+    <div class="row">
+      <label>Année<input id="fy" type="number" inputmode="numeric" min="1900" max="2100" required></label>
+      <label><span id="fll">Pays</span><input id="fl" required autocomplete="off"></label>
+    </div>
+    <div class="sugg" id="sugg"></div>
+    <div class="coord" id="fcoord"></div>
+    <label><span>Raison <span style="font-weight:400">(facultatif)</span></span><input id="fr" maxlength="200" placeholder="Ex. : mariage d’un ami, road trip…"></label>
+    <p class="msg" id="fm" role="status"></p>
+    <div class="foot"><button class="btn ghost" type="button" id="fc">Annuler</button><button class="btn" type="submit" id="fs">Ajouter</button></div>
+  </form>
+</div>
+
+<script src="lib/supabase.js"></script>
+<script src="lib/d3-array.min.js"></script>
+<script src="lib/d3-geo.min.js"></script>
+<script src="lib/topojson-client.min.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

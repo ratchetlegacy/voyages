@@ -120,7 +120,10 @@ input:focus{outline:none;border-color:var(--stamp)}
 .who{display:flex;gap:8px;flex-wrap:wrap}
 .who button{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;font-weight:600}
 .who button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
-.row{display:grid;grid-template-columns:110px 1fr;gap:10px}
+.dates{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.aide{margin:-6px 0 0;font-size:13px;color:var(--muted)}
+.v .d{font-size:13.5px;font-weight:700;color:var(--ink);opacity:.75;margin-top:1px;font-variant-numeric:tabular-nums}
+.v .pays{font-weight:500;color:var(--muted)}
 .sugg{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:4px}
 .sugg:empty{display:none}
 .sugg button{border:0;border-bottom:1px solid var(--line);background:var(--bg);text-align:left;padding:10px 12px;font-size:15px;color:var(--ink)}
@@ -188,11 +191,15 @@ input:focus{outline:none;border-color:var(--stamp)}
     <div><div style="font-size:13.5px;font-weight:600;color:var(--muted);margin-bottom:6px">Pour qui ?</div>
       <div class="who" id="who"><button type="button" data-w="chloe">Chloé</button><button type="button" data-w="mathieu">Mathieu</button><button type="button" data-w="ensemble">À deux</button></div></div>
     <div class="seg" id="ftype" style="align-self:flex-start"><button type="button" data-t="monde">À l’étranger</button><button type="button" data-t="france">En France</button></div>
-    <div class="row">
-      <label>Année<input id="fy" type="number" inputmode="numeric" min="1900" max="2100" required></label>
-      <label><span id="fll">Pays</span><input id="fl" required autocomplete="off"></label>
+    <div class="dates">
+      <label>Début<input id="fd" inputmode="numeric" placeholder="jj/mm/aaaa" maxlength="10" required></label>
+      <label><span>Fin <span style="font-weight:400">(facultatif)</span></span><input id="ff" inputmode="numeric" placeholder="jj/mm/aaaa" maxlength="10"></label>
     </div>
+    <p class="aide">Jour et mois facultatifs : « 03/2024 » ou « 2024 » fonctionnent aussi.</p>
+    <label><span id="fll">Pays</span><input id="fl" required autocomplete="off"></label>
     <div class="sugg" id="sugg"></div>
+    <div id="villeW"><label><span>Ville <span style="font-weight:400">(facultatif, pour placer le point précisément)</span></span><input id="fv" autocomplete="off" placeholder="Ex. : Rome"></label>
+    <div class="sugg" id="sugg2"></div></div>
     <div class="coord" id="fcoord"></div>
     <label><span>Raison <span style="font-weight:400">(facultatif)</span></span><input id="fr" maxlength="200" placeholder="Ex. : mariage d’un ami, road trip…"></label>
     <p class="msg" id="fm" role="status"></p>

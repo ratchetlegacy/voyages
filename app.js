@@ -10,6 +10,25 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return
 function flag(a2){return a2?a2.replace(/./g,function(c){return String.fromCodePoint(127397+c.charCodeAt(0))}):''}
 function col(p){return getComputedStyle(document.documentElement).getPropertyValue('--'+(p==='ensemble'?'deux':p)).trim()}
 
+/* ---------- Dates (jour et mois facultatifs) ---------- */
+var MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function lireDate(s){s=String(s||'').trim();if(!s)return '';var p=s.split(/[^0-9]+/).filter(Boolean);
+  if(p.length===1&&/^\d{8}$/.test(p[0]))p=[p[0].slice(0,2),p[0].slice(2,4),p[0].slice(4)];
+  if(p.length===1&&/^\d{6}$/.test(p[0]))p=[p[0].slice(0,2),p[0].slice(2)];
+  var y,m,d;if(p.length===3){d=+p[0];m=+p[1];y=+p[2]}else if(p.length===2){m=+p[0];y=+p[1]}else if(p.length===1){y=+p[0]}else return null;
+  if(!(y>=1900&&y<=2100))return null;if(m!=null&&!(m>=1&&m<=12))return null;
+  if(d!=null){var max=new Date(y,m,0).getDate();if(!(d>=1&&d<=max))return null}
+  return y+(m?'-'+String(m).padStart(2,'0'):'')+(d?'-'+String(d).padStart(2,'0'):'')}
+function ecrireDate(v){if(!v)return'';var p=v.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:p.length===2?p[1]+'/'+p[0]:p[0]}
+function joliDate(v){if(!v)return'';var p=v.split('-');return p.length===3?(+p[2])+(p[2]==='01'?'er':'')+' '+MOIS[+p[1]-1]+' '+p[0]:p.length===2?MOIS[+p[1]-1]+' '+p[0]:p[0]}
+function periode(r){if(!r.debut)return'';if(!r.fin||r.fin===r.debut)return joliDate(r.debut);
+  var a=r.debut.split('-'),b=r.fin.split('-');
+  if(a.length===3&&b.length===3&&a[0]===b[0]&&a[1]===b[1])return 'du '+(+a[2])+(a[2]==='01'?'er':'')+' au '+joliDate(r.fin);
+  if(a.length===3&&b.length===3&&a[0]===b[0])return 'du '+(+a[2])+(a[2]==='01'?'er':'')+' '+MOIS[+a[1]-1]+' au '+joliDate(r.fin);
+  if(a.length===2&&b.length===2&&a[0]===b[0])return 'de '+MOIS[+a[1]-1]+' à '+joliDate(r.fin);
+  return 'du '+joliDate(r.debut)+' au '+joliDate(r.fin)}
+function cleDate(r){return (r.debut||String(r.annee))+'-00-00'}
+
 /* ---------- Pays ---------- */
 var PAYS_IDX={},PAYS_LISTE=[];
 PAYS.forEach(function(r){var o={a2:r[0],num:r[1],nom:r[2]};PAYS_LISTE.push(o);r.slice(2).forEach(function(n){PAYS_IDX[norm(n)]=o})});
@@ -43,7 +62,6 @@ function demarrer(){
   if(!TOKEN){vue('vLogin');return}
   vue('vApp');initCartes();charger();
 }
-demarrer();
 
 /* ---------- Données ---------- */
 async function charger(){
@@ -105,8 +123,8 @@ function dessinerCarte(){
   if(S.tipKey&&groups[S.tipKey])montrerTip(S.tipKey);else{$('tip').hidden=true;S.tipKey=null}
 }
 function montrerTip(k){var g=M.groups[k];if(!g)return;S.tipKey=k;
-  var rows=g.rows.slice().sort(function(a,b){return b.annee-a.annee});
-  $('tip').innerHTML='<b>'+esc(rows[0].lieu)+'</b><br>'+rows.map(function(r){return r.annee+' · '+NOMS[r.profil]+(r.raison?' · '+esc(r.raison):'')}).join('<br>');$('tip').hidden=false}
+  var rows=g.rows.slice().sort(function(a,b){return cleDate(b)<cleDate(a)?-1:1});
+  $('tip').innerHTML='<b>'+esc(rows[0].ville?rows[0].ville+', '+rows[0].lieu:rows[0].lieu)+'</b><br>'+rows.map(function(r){return (periode(r)||r.annee)+' · '+NOMS[r.profil]+(r.raison?' · '+esc(r.raison):'')}).join('<br>');$('tip').hidden=false}
 
 /* zoom et déplacement */
 (function(){
@@ -155,14 +173,14 @@ function render(){
   $('s3').textContent=ys.length?(mi===ma?mi:mi+'–'+String(ma).slice(2)):'—';
   var box=$('liste');
   if(!L.length){box.innerHTML='<div class="vide"><b>'+(S.type==='monde'?'Aucun voyage à l’étranger':'Aucunes vacances en France')+(S.profil==='ensemble'?' à deux':' pour '+NOMS[S.profil])+'</b>Touchez « + Ajouter » pour noter le premier.</div>';return}
-  var by={};L.forEach(function(r){(by[r.annee]=by[r.annee]||[]).push(r)});
+  var by={};L.forEach(function(r){(by[r.annee]=by[r.annee]||[]).push(r)});Object.keys(by).forEach(function(y){by[y].sort(function(a,b){return cleDate(b)<cleDate(a)?-1:1})});
   box.innerHTML=Object.keys(by).sort(function(a,b){return b-a}).map(function(y){var g=by[y];
     return '<section class="annee"><h2>'+y+'<small>'+g.length+' '+(S.type==='monde'?(g.length>1?'voyages':'voyage'):(g.length>1?'séjours':'séjour'))+'</small></h2><div class="cards">'+g.map(carte).join('')+'</div></section>'}).join('');
 }
 function carte(r){
   var p=r.type==='monde'?pays(r.lieu):null,c=lieuCoord(r),sure=S.delAsk===r.id;
   var tags=(S.profil!=='ensemble'&&r.profil==='ensemble'?'<span class="tag">À deux</span> ':'')+(!c?'<span class="tag warn">Pas encore sur la carte</span>':'');
-  return '<article class="v"><span class="flag" aria-hidden="true">'+(r.type==='monde'?(flag(p&&p.a2)||'🌍'):'📍')+'</span><div class="txt"><b>'+esc(r.lieu)+'</b>'+(r.raison?'<div class="r">'+esc(r.raison)+'</div>':'')+tags+
+  return '<article class="v"><span class="flag" aria-hidden="true">'+(r.type==='monde'?(flag(p&&p.a2)||'🌍'):'📍')+'</span><div class="txt"><b>'+(r.ville?esc(r.ville)+' <span class="pays">· '+esc(r.lieu)+'</span>':esc(r.lieu))+'</b>'+(r.debut?'<div class="d">'+periode(r)+'</div>':'')+(r.raison?'<div class="r">'+esc(r.raison)+'</div>':'')+tags+
   '<div class="acts"><button data-ed="'+r.id+'">Modifier</button>'+(r.type==='france'?'<button data-pl="'+r.id+'">'+(c?'Déplacer le point':'Placer sur la carte')+'</button>':'')+
   '<button data-del="'+r.id+'" class="'+(sure?'sure':'')+'">'+(sure?'Confirmer la suppression':'Supprimer')+'</button></div></div></article>';
 }
@@ -181,7 +199,8 @@ $('liste').onclick=async function(e){
 /* ---------- Fenêtre d'ajout ---------- */
 function ouvrir(r){
   S.edit=r?r.id:null;S.f={who:r?r.profil:S.profil,type:r?r.type:S.type,coord:r&&r.lat!=null?{lat:r.lat,lon:r.lon}:null};
-  $('fy').value=r?r.annee:new Date().getFullYear();$('fl').value=r?r.lieu:'';$('fr').value=r?(r.raison||''):'';
+  $('fd').value=r?ecrireDate(r.debut||String(r.annee)):'';$('ff').value=r?ecrireDate(r.fin):'';$('fv').value=r?(r.ville||''):'';$('sugg2').innerHTML='';
+  $('fl').value=r?r.lieu:'';$('fr').value=r?(r.raison||''):'';
   $('ft').textContent=r?'Modifier le voyage':'Ajouter un voyage';$('fs').textContent=r?'Enregistrer':'Ajouter';$('fm').textContent='';$('sugg').innerHTML='';
   majForm();$('sheet').hidden=false;setTimeout(function(){$('fl').focus()},50);
 }
@@ -190,8 +209,8 @@ function majForm(){
   document.querySelectorAll('#who button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.w===S.f.who)});
   document.querySelectorAll('#ftype button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.t===S.f.type)});
   $('fll').textContent=S.f.type==='monde'?'Pays':'Ville ou région';$('fl').placeholder=S.f.type==='monde'?'Ex. : Italie':'Ex. : Annecy';
-  var c=$('fcoord');
-  if(S.f.type==='monde'){var p=pays($('fl').value);c.textContent=$('fl').value.trim()?(p?flag(p.a2)+' '+p.nom+' : placé sur la carte automatiquement':'Pays non reconnu : choisissez-le dans la liste.'):''}
+  var c=$('fcoord');$('villeW').hidden=S.f.type!=='monde';
+  if(S.f.type==='monde'){var p=pays($('fl').value);c.textContent=$('fl').value.trim()?(p?(S.f.coord?'📍 '+$('fv').value.trim()+' placé sur la carte':flag(p.a2)+' '+p.nom+' : point au centre du pays'+($('fv').value.trim()?' (choisissez la ville dans la liste pour la placer)':'')):'Pays non reconnu : choisissez-le dans la liste.'):''}
   else c.textContent=S.f.coord?'📍 Placé sur la carte':($('fl').value.trim()?'Choisissez une suggestion, ou placez le point sur la carte après l’ajout.':'');
 }
 $('fab').onclick=function(){ouvrir(null)};
@@ -201,7 +220,7 @@ $('who').onclick=function(e){var b=e.target.closest('button');if(!b)return;S.f.w
 $('ftype').onclick=function(e){var b=e.target.closest('button');if(!b)return;S.f.type=b.dataset.t;S.f.coord=null;$('sugg').innerHTML='';majForm()};
 
 var tmr=null,reqN=0;
-$('fl').addEventListener('input',function(){S.f.coord=null;majForm();clearTimeout(tmr);var q=this.value.trim();
+$('fl').addEventListener('input',function(){if(S.f.type==='france')S.f.coord=null;majForm();clearTimeout(tmr);var q=this.value.trim();
   if(q.length<2){$('sugg').innerHTML='';return}
   if(S.f.type==='monde'){var n=norm(q),res=PAYS_LISTE.filter(function(p){return norm(p.nom).indexOf(n)===0}).concat(PAYS_LISTE.filter(function(p){var x=norm(p.nom);return x.indexOf(n)>0})).slice(0,6);
     sugg(res.map(function(p){return{label:flag(p.a2)+' '+p.nom,val:p.nom}}));return}
@@ -212,15 +231,31 @@ $('fl').addEventListener('input',function(){S.f.coord=null;majForm();clearTimeou
     if(my===reqN)sugg(loc.concat(api).slice(0,7))},250);
 });
 function sugg(list){$('sugg').innerHTML=list.map(function(s,i){return '<button type="button" data-i="'+i+'">'+esc(s.label)+(s.sub?' <small>'+esc(s.sub)+'</small>':'')+'</button>'}).join('');$('sugg')._l=list}
-$('sugg').onclick=function(e){var b=e.target.closest('button');if(!b)return;var s=this._l[+b.dataset.i];$('fl').value=s.val;S.f.coord=s.lat!=null?{lat:s.lat,lon:s.lon}:null;this.innerHTML='';majForm();$('fr').focus()};
+$('sugg').onclick=function(e){var b=e.target.closest('button');if(!b)return;var s=this._l[+b.dataset.i];$('fl').value=s.val;if(S.f.type==='france')S.f.coord=s.lat!=null?{lat:s.lat,lon:s.lon}:null;this.innerHTML='';majForm();(S.f.type==='monde'?$('fv'):$('fr')).focus()};
+
+/* Ville à l'étranger (OpenStreetMap) */
+var tmr2=null,reqV=0;
+$('fv').addEventListener('input',function(){S.f.coord=null;majForm();clearTimeout(tmr2);var q=this.value.trim(),p=pays($('fl').value);
+  if(q.length<2){$('sugg2').innerHTML='';return}
+  tmr2=setTimeout(async function(){var my=++reqV,res=[];
+    try{var u='https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&accept-language=fr&q='+encodeURIComponent(q)+(p?'&countrycodes='+p.a2.toLowerCase():'');
+      var r=await fetch(u);if(r.ok)res=(await r.json()).filter(function(x){return x.lat}).map(function(x){var ad=x.address||{};
+        return{label:x.name||q,sub:[ad.state||ad.county||'',ad.country||''].filter(Boolean).join(', '),lat:+x.lat,lon:+x.lon}})}catch(e){}
+    if(my===reqV){$('sugg2').innerHTML=res.map(function(s,i){return '<button type="button" data-i="'+i+'">'+esc(s.label)+(s.sub?' <small>'+esc(s.sub)+'</small>':'')+'</button>'}).join('');$('sugg2')._l=res}},400);
+});
+$('sugg2').onclick=function(e){var b=e.target.closest('button');if(!b)return;var s=this._l[+b.dataset.i];$('fv').value=s.label;S.f.coord={lat:s.lat,lon:s.lon};this.innerHTML='';majForm();$('fr').focus()};
 
 $('f').onsubmit=async function(e){e.preventDefault();var m=$('fm');m.textContent='';
-  var y=parseInt($('fy').value,10),l=$('fl').value.trim(),rs=$('fr').value.trim();
-  if(!y||y<1900||y>2100){m.textContent='Indiquez une année entre 1900 et 2100.';return}
+  var deb=lireDate($('fd').value),fin=lireDate($('ff').value),l=$('fl').value.trim(),rs=$('fr').value.trim(),vi=S.f.type==='monde'?$('fv').value.trim():'';
+  if(!deb){m.textContent=deb===null?'Date de début non reconnue. Écrivez par exemple 12/03/2024, 03/2024 ou 2024.':'Indiquez au moins l’année de début.';return}
+  if(fin===null){m.textContent='Date de fin non reconnue. Écrivez par exemple 19/03/2024, 03/2024 ou 2024.';return}
+  var n=Math.min(fin.length,deb.length);if(fin&&fin.slice(0,n)<deb.slice(0,n)){m.textContent='La date de fin est avant la date de début.';return}
+  var y=+deb.slice(0,4);
   if(!l){m.textContent=S.f.type==='monde'?'Indiquez le pays.':'Indiquez la ville ou la région.';return}
   if(S.f.type==='monde'){var p=pays(l);if(!p){m.textContent='Pays non reconnu : choisissez-le dans la liste des suggestions.';return}l=p.nom}
+  if(S.f.type==='monde'&&!vi)S.f.coord=null;
   if(S.f.type==='france'&&!S.f.coord){var k=LIEUX_FR.find(function(x){return norm(x.nom)===norm(l)});if(k)S.f.coord={lat:k.lat,lon:k.lon}}
-  var d={profil:S.f.who,type:S.f.type,annee:y,lieu:l,raison:rs||null,lat:S.f.coord?S.f.coord.lat:null,lon:S.f.coord?S.f.coord.lon:null};
+  var d={profil:S.f.who,type:S.f.type,annee:y,debut:deb,fin:fin||'',ville:vi,lieu:l,raison:rs||null,lat:S.f.coord?S.f.coord.lat:null,lon:S.f.coord?S.f.coord.lon:null};
   $('fs').disabled=true;
   var r=await rpc('voyages_enregistrer',{p_id:S.edit||null,p_data:d});
   $('fs').disabled=false;
@@ -230,3 +265,8 @@ $('f').onsubmit=async function(e){e.preventDefault();var m=$('fm');m.textContent
 
 /* ---------- Application installable ---------- */
 if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
+
+/* ---------- Lancement ---------- */
+demarrer();
+
+$('f').addEventListener('input',function(){$('fm').textContent=''});

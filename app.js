@@ -183,6 +183,8 @@ function render(){
   document.querySelectorAll('.bar .seg button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.t===S.type)});
   $('incW').hidden=S.profil==='ensemble';
   if(!M.monde)return;
+  var st=S.type==='stats';$('map').hidden=st;document.querySelector('.stats').hidden=st;$('liste').hidden=st;$('vStats').hidden=!st;
+  if(st){renderStats();return}
   dessinerCarte();
   var L=visibles(),u={};L.forEach(function(r){u[S.type==='monde'?(pays(r.lieu)||{}).a2||norm(r.lieu):norm(r.lieu)]=1});
   var ys=L.map(function(r){return r.annee}),mi=Math.min.apply(0,ys),ma=Math.max.apply(0,ys);
@@ -216,7 +218,7 @@ $('liste').onclick=async function(e){
 
 /* ---------- Fenêtre d'ajout ---------- */
 function ouvrir(r){
-  S.edit=r?r.id:null;S.f={who:r?r.profil:S.profil,type:r?r.type:S.type,coord:r&&r.lat!=null?{lat:r.lat,lon:r.lon}:null};
+  S.edit=r?r.id:null;S.f={who:r?r.profil:S.profil,type:r?r.type:(S.type==='stats'?'monde':S.type),coord:r&&r.lat!=null?{lat:r.lat,lon:r.lon}:null};
   $('fd').value=r?ecrireDate(r.debut||String(r.annee)):'';$('ff').value=r?ecrireDate(r.fin):'';$('fv').value=r?(r.ville||''):'';$('sugg2').innerHTML='';
   $('fl').value=r?r.lieu:'';$('fr').value=r?(r.raison||''):'';
   $('ft').textContent=r?'Modifier le voyage':'Ajouter un voyage';$('fs').textContent=r?'Enregistrer':'Ajouter';$('fm').textContent='';$('sugg').innerHTML='';
@@ -309,3 +311,58 @@ if(LOCAL){
       ecrireLocal(l);$('sMsg').textContent=aj+' voyage'+(aj>1?'s':'')+' ajouté'+(aj>1?'s':'')+(maj?', '+maj+' mis à jour':'')+'.';charger();
     }catch(e){$('sMsg').textContent='Ce fichier n’est pas une sauvegarde de « Nos voyages ».'}};
 }
+
+/* ---------- Stats ---------- */
+var DEP=null;try{DEP=JSON.parse(localStorage.getItem('voyages-depart')||'null')}catch(e){}
+function km(a,b){var R=6371,t=Math.PI/180,dl=(b[1]-a[1])*t,dg=(b[0]-a[0])*t,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a[1]*t)*Math.cos(b[1]*t)*Math.sin(dg/2)*Math.sin(dg/2);return 2*R*Math.asin(Math.sqrt(x))}
+function hm(h){var m=Math.round(h*60),j=Math.floor(m/1440);m-=j*1440;var hh=Math.floor(m/60),mm=m%60;return (j?j+' j ':'')+(hh?hh+' h':'')+(j?'':(mm?(hh?' ':'')+String(mm).padStart(hh?2:1,'0')+(hh?'':' min'):(hh?'':'0 min')))}
+function nf(n){return Math.round(n).toLocaleString('fr-FR')}
+function jours(r){var a=r.debut,b=r.fin||r.debut;if(!a||a.length<10||b.length<10)return null;return Math.round((new Date(b)-new Date(a))/864e5)+1}
+function trajet(r,d){if(r.type==='monde')return{mode:'vol',h:d/800+0.5,txt:'✈️ '+hm(d/800+0.5)};var h=d*1.3/80,c=lieuCoord(r),corse=c&&c[0]>8.4&&c[1]<43.2;return{mode:'route',h:h,txt:'🚗 '+hm(h)+(corse?' + traversée en bateau':'')}}
+function filtre(t){var s=S.type;S.type=t;var l=visibles(t);S.type=s;return l}
+function renderStats(){
+  var W=filtre('monde'),F=filtre('france'),T=W.concat(F);
+  $('dep').value=DEP?DEP.nom:$('dep').value;
+  $('depI').textContent=DEP?'Distances et temps calculés depuis '+DEP.nom+'.':'Choisissez votre ville pour calculer les distances et les temps de trajet.';
+  var pz={};W.forEach(function(r){var p=pays_(r);pz[p.k]=pz[p.k]||{nom:p.nom,a2:p.a2,n:0};pz[p.k].n++});
+  var lieux={};F.forEach(function(r){lieux[norm(r.lieu)]=1});
+  var nbJ=0,avecJ=0;T.forEach(function(r){var j=jours(r);if(j){nbJ+=j;avecJ++}});
+  var dist=[],tot=0,vol=0,route=0;
+  if(DEP)T.forEach(function(r){var c=lieuCoord(r);if(!c)return;var d=km([DEP.lon,DEP.lat],c),t=trajet(r,d);dist.push({r:r,d:d,t:t});tot+=2*d;if(t.mode==='vol')vol+=2*t.h;else route+=2*t.h});
+  dist.sort(function(a,b){return b.d-a.d});
+  var k=[];
+  if(DEP)k.push('<div class="k big"><b>'+nf(tot)+' km</b><span>parcourus aller-retour, soit '+(tot/40075).toLocaleString('fr-FR',{maximumFractionDigits:1})+' fois le tour de la Terre</span></div>');
+  k.push('<div class="k"><b>'+W.length+'</b><span>voyage'+(W.length>1?'s':'')+' à l’étranger</span></div>');
+  k.push('<div class="k"><b>'+Object.keys(pz).length+'</b><span>pays visité'+(Object.keys(pz).length>1?'s':'')+'</span></div>');
+  k.push('<div class="k"><b>'+F.length+'</b><span>séjour'+(F.length>1?'s':'')+' en France, '+Object.keys(lieux).length+' lieu'+(Object.keys(lieux).length>1?'x':'')+'</span></div>');
+  k.push('<div class="k"><b>'+(avecJ?nbJ:'—')+'</b><span>'+(avecJ?'jours en voyage ('+avecJ+' voyage'+(avecJ>1?'s':'')+' daté'+(avecJ>1?'s':'')+' au jour près)':'jours en voyage : ajoutez des dates complètes')+'</span></div>');
+  if(DEP){k.push('<div class="k"><b>'+(vol?hm(vol):'—')+'</b><span>de vol estimé (aller-retour)</span></div>');
+    k.push('<div class="k"><b>'+(route?hm(route):'—')+'</b><span>de route estimée en France (aller-retour)</span></div>');
+    if(dist.length){k.push('<div class="k"><b>'+nf(dist[0].d)+' km</b><span>le plus loin : '+esc(dist[0].r.ville||dist[0].r.lieu)+'</span></div>');
+      var p=dist[dist.length-1];k.push('<div class="k"><b>'+nf(p.d)+' km</b><span>le plus près : '+esc(p.r.ville||p.r.lieu)+'</span></div>')}}
+  $('kpi').innerHTML=k.join('');
+  /* par année */
+  var an={};T.forEach(function(r){an[r.annee]=(an[r.annee]||0)+1});var ks=Object.keys(an).sort(function(a,b){return b-a}),mx=Math.max.apply(0,ks.map(function(y){return an[y]}).concat([1]));
+  $('parAn').innerHTML=ks.length?ks.map(function(y){return '<div class="barre"><span>'+y+'</span><i style="width:'+(an[y]/mx*100)+'%"></i><em>'+an[y]+'</em></div>'}).join(''):'<p class="aide">Aucun voyage pour l’instant.</p>';
+  /* mois */
+  var mo=[0,0,0,0,0,0,0,0,0,0,0,0],avecM=0;T.forEach(function(r){if(r.debut&&r.debut.length>=7){mo[+r.debut.slice(5,7)-1]++;avecM++}});var mm=Math.max.apply(0,mo.concat([1]));
+  $('parMois').innerHTML=mo.map(function(n,i){return '<div title="'+MOIS[i]+' : '+n+'"><i style="height:'+(n/mm*80)+'%"></i>'+'JFMAMJJASOND'[i]+'</div>'}).join('');
+  /* top pays */
+  var tp=Object.keys(pz).map(function(k){return pz[k]}).sort(function(a,b){return b.n-a.n}).slice(0,8),tm=tp.length?tp[0].n:1;
+  $('topPays').innerHTML=tp.length?tp.map(function(p){return '<div class="barre" style="grid-template-columns:130px 1fr 30px"><span>'+flag(p.a2)+' '+esc(p.nom)+'</span><i style="width:'+(p.n/tm*100)+'%"></i><em>'+p.n+'</em></div>'}).join(''):'<p class="aide">Aucun voyage à l’étranger pour l’instant.</p>';
+  /* distances */
+  $('distT').textContent=DEP?'Distances depuis '+DEP.nom:'Distances depuis le point de départ';
+  $('dist').innerHTML=!DEP?'<p class="aide">Choisissez un point de départ en haut de l’onglet.</p>':dist.length?dist.map(function(x){return '<div class="dl"><b>'+(x.r.type==='monde'?flag((pays(x.r.lieu)||{}).a2)+' ':'📍 ')+esc(x.r.ville?x.r.ville+', '+x.r.lieu:x.r.lieu)+'</b><span>'+nf(x.d)+' km</span><small>'+(periode(x.r)||x.r.annee)+' · '+x.t.txt+' l’aller</small></div>'}).join(''):'<p class="aide">Aucun voyage placé sur la carte pour l’instant.</p>';
+}
+function pays_(r){var p=pays(r.lieu);return p?{k:p.a2,nom:p.nom,a2:p.a2}:{k:norm(r.lieu),nom:r.lieu,a2:''}}
+
+/* choix du point de départ */
+var tmrD=null,reqD=0;
+$('dep').addEventListener('input',function(){clearTimeout(tmrD);var q=this.value.trim();if(q.length<2){$('depS').innerHTML='';return}
+  tmrD=setTimeout(async function(){var my=++reqD,res=[];
+    try{var r=await fetch('https://geo.api.gouv.fr/communes?nom='+encodeURIComponent(q)+'&fields=nom,centre,departement&boost=population&limit=5');
+      if(r.ok)res=(await r.json()).filter(function(c){return c.centre}).map(function(c){return{nom:c.nom,sub:c.departement?c.departement.nom:'',lat:c.centre.coordinates[1],lon:c.centre.coordinates[0]}})}catch(e){}
+    if(res.length<3)try{var r2=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=4&accept-language=fr&q='+encodeURIComponent(q));
+      if(r2.ok)res=res.concat((await r2.json()).map(function(x){var ad=x.address||{};return{nom:x.name||q,sub:ad.country||'',lat:+x.lat,lon:+x.lon}}))}catch(e){}
+    if(my!==reqD)return;$('depS').innerHTML=res.map(function(s,i){return '<button type="button" data-i="'+i+'">'+esc(s.nom)+(s.sub?' <small>'+esc(s.sub)+'</small>':'')+'</button>'}).join('');$('depS')._l=res},300)});
+$('depS').onclick=function(e){var b=e.target.closest('button');if(!b)return;var s=this._l[+b.dataset.i];DEP={nom:s.nom,lat:s.lat,lon:s.lon};try{localStorage.setItem('voyages-depart',JSON.stringify(DEP))}catch(x){}this.innerHTML='';renderStats()};

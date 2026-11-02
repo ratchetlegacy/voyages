@@ -137,21 +137,11 @@ input:focus{outline:none;border-color:var(--stamp)}
 <section class="login" id="vLogin" hidden>
   <form id="fLogin" autocomplete="on">
     <h1>Nos <span>voyages</span></h1>
-    <p>Le carnet de voyages de Chloé et Mathieu.</p>
-    <div class="seg2"><button type="button" data-m="in" aria-pressed="true">Se connecter</button><button type="button" data-m="up" aria-pressed="false">Créer un compte</button></div>
-    <label>E-mail<input id="lEmail" type="email" autocomplete="email" required></label>
-    <label>Mot de passe<input id="lPw" type="password" autocomplete="current-password" minlength="6" required></label>
+    <p>Le carnet de voyages de Chloé et Mathieu. À la première connexion, le mot de passe que vous tapez devient le vôtre.</p>
+    <label>Pseudo<input id="lPseudo" autocomplete="username" autocapitalize="none" placeholder="Chloé ou Mathieu" required></label>
+    <label>Mot de passe<input id="lPw" type="password" autocomplete="current-password" minlength="4" required></label>
     <button class="btn" id="lGo" type="submit">Se connecter</button>
     <p class="msg" id="lMsg" role="status"></p>
-  </form>
-</section>
-
-<section class="login" id="vRefus" hidden>
-  <form onsubmit="return false">
-    <h1>Accès <span>en attente</span></h1>
-    <p>Le compte <b id="rEmail"></b> n’est pas encore autorisé à ouvrir ce carnet. Demandez à l’ajouter, puis rechargez.</p>
-    <button class="btn" type="button" onclick="location.reload()">Recharger</button>
-    <button class="btn ghost" type="button" data-logout>Changer de compte</button>
   </form>
 </section>
 

@@ -1,7 +1,7 @@
 /* Nos voyages — carnet de voyages de Chloé et Mathieu */
 var SB_URL='https://ihucxnmqnhevfvlamgwc.supabase.co';
 var SB_KEY='sb_publishable_kEE6pdoje5XIxfyiI9J4FA_qJ4Z-3-p';
-var sb=supabase.createClient(SB_URL,SB_KEY);
+var sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 
 var NOMS={chloe:'Chloé',mathieu:'Mathieu',ensemble:'À deux'};
 var $=function(id){return document.getElementById(id)};
@@ -23,34 +23,32 @@ LIEUX_FR=LIEUX_FR.map(function(l){return{nom:l[0],lon:l[1],lat:l[2],sub:'Région
 /* ---------- État ---------- */
 var S={profil:'ensemble',type:'monde',inc:true,rows:[],delAsk:null,edit:null,f:{who:'ensemble',type:'monde',coord:null},placeId:null,tipKey:null,user:null};
 
-/* ---------- Connexion ---------- */
-var mode='in';
-document.querySelector('#vLogin .seg2').onclick=function(e){var b=e.target.closest('button');if(!b)return;mode=b.dataset.m;
-  this.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b)});
-  $('lGo').textContent=mode==='in'?'Se connecter':'Créer mon compte';$('lPw').autocomplete=mode==='in'?'current-password':'new-password';$('lMsg').textContent=''};
+/* ---------- Connexion (pseudo + mot de passe) ---------- */
+var TOKEN=null;try{TOKEN=localStorage.getItem('voyages-token')}catch(e){}
+function memo(t){TOKEN=t;try{t?localStorage.setItem('voyages-token',t):localStorage.removeItem('voyages-token')}catch(e){}}
+function rpc(nom,args){return sb.rpc(nom,Object.assign({p_token:TOKEN},args||{})).then(function(r){if(r.error&&/session_invalide/.test(r.error.message)){memo(null);vue('vLogin')}return r})}
 $('fLogin').onsubmit=async function(e){e.preventDefault();var m=$('lMsg');m.className='msg';m.textContent='';$('lGo').disabled=true;
-  var email=$('lEmail').value.trim(),pw=$('lPw').value;
-  try{
-    if(mode==='in'){var r=await sb.auth.signInWithPassword({email:email,password:pw});if(r.error)throw r.error;await demarrer(r.data.session)}
-    else{var r2=await sb.auth.signUp({email:email,password:pw});if(r2.error)throw r2.error;
-      if(r2.data.session)await demarrer(r2.data.session);else{m.className='msg ok';m.textContent='Compte créé. Ouvrez l’e-mail de confirmation, puis revenez vous connecter.'}}
-  }catch(err){m.textContent=/invalid login/i.test(err.message)?'E-mail ou mot de passe incorrect.':/registered/i.test(err.message)?'Ce compte existe déjà : utilisez « Se connecter ».':/confirm/i.test(err.message)?'Confirmez d’abord votre adresse avec l’e-mail reçu.':'Connexion impossible : '+err.message}
-  $('lGo').disabled=false};
-document.querySelectorAll('[data-logout]').forEach(function(b){b.onclick=async function(){await sb.auth.signOut();location.reload()}});
+  var pseudo=norm($('lPseudo').value).replace(/\s/g,''),pw=$('lPw').value;
+  var r=await sb.rpc('voyages_connexion',{p_pseudo:pseudo,p_mdp:pw});
+  $('lGo').disabled=false;
+  if(r.error){var t=r.error.message;
+    m.textContent=/pseudo_inconnu/.test(t)?'Pseudo inconnu. Utilisez « Chloé » ou « Mathieu ».':/mdp_faux/.test(t)?'Mot de passe incorrect.':/bloque/.test(t)?'Trop d’essais. Réessayez dans 15 minutes.':/mdp_court/.test(t)?'Le mot de passe doit faire au moins 4 caractères.':'Connexion impossible. Vérifiez votre connexion internet.';return}
+  memo(r.data.token);try{localStorage.setItem('voyages-nom',r.data.nom)}catch(x){}
+  demarrer();
+};
+document.querySelectorAll('[data-logout]').forEach(function(b){b.onclick=async function(){if(TOKEN)await sb.rpc('voyages_deconnexion',{p_token:TOKEN});memo(null);location.reload()}});
 
-function vue(v){['vLogin','vRefus','vApp'].forEach(function(id){$(id).hidden=id!==v})}
-async function demarrer(session){
-  if(!session){vue('vLogin');return}
-  S.user=session.user;
-  var m=await sb.from('voyages_membres').select('email').limit(1);
-  if(m.error||!m.data||!m.data.length){$('rEmail').textContent=session.user.email;vue('vRefus');return}
+function vue(v){['vLogin','vApp'].forEach(function(id){$(id).hidden=id!==v})}
+function demarrer(){
+  if(!TOKEN){vue('vLogin');return}
   vue('vApp');initCartes();charger();
 }
-(async function(){var r=await sb.auth.getSession();demarrer(r.data.session)})();
+demarrer();
 
 /* ---------- Données ---------- */
 async function charger(){
-  var r=await sb.from('voyages').select('*').order('annee',{ascending:false});
+  var r=await rpc('voyages_liste');
+  if(!TOKEN)return;
   if(r.error){$('etat').textContent='Impossible de charger les voyages. Vérifiez votre connexion.';return}
   $('etat').textContent='';S.rows=r.data||[];render();
 }
@@ -139,7 +137,7 @@ function commencerPlacement(id){var r=S.rows.find(function(x){return x.id===id})
   $('placeT').textContent='Touchez la carte pour placer « '+r.lieu+' »';$('place').hidden=false;render();$('map').scrollIntoView({behavior:'smooth',block:'start'})}
 $('placeX').onclick=function(){S.placeId=null;$('place').hidden=true;render()};
 async function placer(c){var id=S.placeId;S.placeId=null;$('place').hidden=true;
-  var r=await sb.from('voyages').update({lon:+c[0].toFixed(4),lat:+c[1].toFixed(4)}).eq('id',id);
+  var r=await rpc('voyages_enregistrer',{p_id:id,p_data:{lon:+c[0].toFixed(4),lat:+c[1].toFixed(4)}});
   if(r.error)alerte('Le point n’a pas pu être enregistré.');await charger()}
 function alerte(t){$('etat').textContent=t}
 
@@ -177,7 +175,7 @@ $('liste').onclick=async function(e){
   if(ed){var r=S.rows.find(function(x){return x.id===ed.dataset.ed});if(r)ouvrir(r);return}
   if(pl){commencerPlacement(pl.dataset.pl);return}
   if(del){if(S.delAsk!==del.dataset.del){S.delAsk=del.dataset.del;render();return}
-    S.delAsk=null;var x=await sb.from('voyages').delete().eq('id',del.dataset.del);if(x.error)alerte('La suppression n’a pas marché.');charger()}
+    S.delAsk=null;var x=await rpc('voyages_supprimer',{p_id:del.dataset.del});if(x.error)alerte('La suppression n’a pas marché.');charger()}
 };
 
 /* ---------- Fenêtre d'ajout ---------- */
@@ -224,7 +222,7 @@ $('f').onsubmit=async function(e){e.preventDefault();var m=$('fm');m.textContent
   if(S.f.type==='france'&&!S.f.coord){var k=LIEUX_FR.find(function(x){return norm(x.nom)===norm(l)});if(k)S.f.coord={lat:k.lat,lon:k.lon}}
   var d={profil:S.f.who,type:S.f.type,annee:y,lieu:l,raison:rs||null,lat:S.f.coord?S.f.coord.lat:null,lon:S.f.coord?S.f.coord.lon:null};
   $('fs').disabled=true;
-  var r=S.edit?await sb.from('voyages').update(d).eq('id',S.edit):await sb.from('voyages').insert(d);
+  var r=await rpc('voyages_enregistrer',{p_id:S.edit||null,p_data:d});
   $('fs').disabled=false;
   if(r.error){m.textContent='L’enregistrement n’a pas marché. Vérifiez votre connexion et réessayez.';return}
   fermer();S.type=d.type;if(S.profil!==d.profil&&!(d.profil==='ensemble'&&S.inc))S.profil=d.profil;await charger();

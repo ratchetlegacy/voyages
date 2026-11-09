@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Nos voyages (téléphone)</title>
+<title>Nous Deux (téléphone)</title>
 <meta name="theme-color" content="#12302F">
 <link rel="manifest" href="manifest-local.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Nos voyages">
+<meta name="apple-mobile-web-app-title" content="Nous Deux">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -155,6 +155,28 @@ input:focus{outline:none;border-color:var(--stamp)}
 .dl b{font-weight:700;overflow-wrap:anywhere}.dl small{color:var(--muted);grid-column:1/-1}
 .dl span{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
 .etat:empty{display:none}
+/* Navigation principale et accueil */
+.nav{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--soft);border-radius:16px;padding:4px;margin-top:14px}
+.nav button{border:0;background:transparent;padding:10px 4px;border-radius:12px;font-weight:700;color:var(--muted);font-size:15px}
+.nav button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+#vAccueil{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+#vAccueil[hidden]{display:none}
+.hello{font:800 26px/1.15 var(--disp);margin:0}
+.hello small{display:block;font:500 15px/1.4 var(--body);color:var(--muted);margin-top:6px}
+.home{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.home-h{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.home-h h2{font-size:21px;font-weight:800}
+.lien{border:0;background:transparent;color:var(--stamp);font-weight:700;font-size:14.5px;padding:4px 0;white-space:nowrap}
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mini div{background:var(--bg);border-radius:12px;padding:10px 12px;min-width:0}
+.mini b{display:block;font:800 20px/1.15 var(--disp);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini span{font-size:12.5px;color:var(--muted);line-height:1.25;display:block}
+.eq{background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 14px;font-weight:700;font-size:15px}
+.eq small{display:block;font-weight:500;opacity:.75;font-size:12.5px}
+.sous{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:2px 0 -4px}
+.ligne{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0 2px;border:0;border-top:1px solid var(--line);font-size:15.5px;width:100%;background:transparent;text-align:left;color:inherit}
+.ligne>span:first-child{min-width:0;overflow-wrap:anywhere}
+.ligne small{display:block;color:var(--muted);font-size:13px;font-weight:500}
 /* Projets & budgets */
 .bar .seg button{padding:8px 13px}
 #vProjets{display:flex;flex-direction:column;gap:14px;margin-top:14px}
@@ -188,8 +210,8 @@ textarea:focus{outline:none;border-color:var(--stamp)}
 
 <section class="login" id="vLogin" hidden>
   <form id="fLogin" autocomplete="on">
-    <h1>Nos <span>voyages</span></h1>
-    <p>Le carnet de voyages de Chloé et Mathieu. À la première connexion, le mot de passe que vous tapez devient le vôtre.</p>
+    <h1>Nous <span>Deux</span></h1>
+    <p>L’appli de Chloé et Mathieu : vos voyages, vos projets et vos budgets. À la première connexion, le mot de passe que vous tapez devient le vôtre.</p>
     <label>Pseudo<input id="lPseudo" autocomplete="username" autocapitalize="none" placeholder="Chloé ou Mathieu" required></label>
     <label>Mot de passe<input id="lPw" type="password" autocomplete="current-password" minlength="4" required></label>
     <button class="btn" id="lGo" type="submit">Se connecter</button>
@@ -199,8 +221,12 @@ textarea:focus{outline:none;border-color:var(--stamp)}
 
 <main id="vApp" hidden>
   <div class="wrap">
-    <div class="top"><div><h1>Nos <span>voyages</span></h1><div style="font-size:13px;color:var(--muted);font-weight:600">🔒 Enregistré seulement dans ce téléphone</div></div><button class="icon-btn" data-logout>Déconnexion</button></div>
+    <div class="top"><div><h1>Nous <span>Deux</span></h1><div style="font-size:13px;color:var(--muted);font-weight:600">🔒 Enregistré seulement dans ce téléphone</div></div><button class="icon-btn" data-logout>Déconnexion</button></div>
 
+    <nav class="nav" id="nav" aria-label="Sections"><button type="button" data-s="accueil">🏠 Accueil</button><button type="button" data-s="voyages">🌍 Voyages</button><button type="button" data-s="projets">💰 Projets</button></nav>
+    <section id="vAccueil"></section>
+
+    <div id="vVoy" hidden>
     <div class="profils" role="group" aria-label="Profil">
       <button class="prof" data-p="chloe" aria-pressed="false"><span class="av">C</span><b>Chloé</b></button>
       <button class="prof" data-p="mathieu" aria-pressed="false"><span class="av">M</span><b>Mathieu</b></button>
@@ -212,7 +238,6 @@ textarea:focus{outline:none;border-color:var(--stamp)}
         <button data-t="monde" aria-pressed="true">Monde</button>
         <button data-t="france" aria-pressed="false">France</button>
         <button data-t="stats" aria-pressed="false">Stats</button>
-        <button data-t="projets" aria-pressed="false">Projets</button>
       </div>
       <label class="toggle" id="incW" hidden><input type="checkbox" id="inc" checked>Avec les voyages à deux</label>
     </div>
@@ -244,12 +269,13 @@ textarea:focus{outline:none;border-color:var(--stamp)}
       <div class="bloc"><h3 id="distT">Distances depuis le point de départ</h3><div id="dist"></div>
         <p class="aide">Estimations à vol d’oiseau. Vol : environ 800 km/h, plus 30 min de décollage et d’atterrissage. Route : distance × 1,3 à 80 km/h de moyenne.</p></div>
     </section>
+    <div id="liste"></div>
+    </div>
     <section id="vProjets" hidden>
       <div class="grid" id="pKpi"></div>
       <div class="seg" id="pFiltre" style="align-self:flex-start"><button type="button" data-f="actifs">En cours &amp; à venir</button><button type="button" data-f="fait">Faits</button><button type="button" data-f="tous">Tous</button></div>
       <div id="pListe"></div>
     </section>
-    <div id="liste"></div>
   </div>
   <button class="fab" id="fab">+ Ajouter</button>
 </main>

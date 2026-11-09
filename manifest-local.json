@@ -1,7 +1,7 @@
 {
-  "name": "Nos voyages (téléphone)",
-  "short_name": "Voyages",
-  "description": "Le carnet de voyages de Chloé et Mathieu",
+  "name": "Nous Deux (téléphone)",
+  "short_name": "Nous Deux",
+  "description": "L’appli de Chloé et Mathieu : voyages, projets et budgets",
   "lang": "fr",
   "start_url": "hors-ligne.html",
   "scope": "./",

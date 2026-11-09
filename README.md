@@ -1,6 +1,6 @@
-# Nos voyages
+# Nous Deux
 
-Carnet de voyages de Chloé et Mathieu : tous les voyages à l'étranger et les vacances en France, année par année, sur deux cartes interactives.
+L’appli de Chloé et Mathieu : leurs projets à deux avec budgets et dépenses, et tous leurs voyages à l'étranger et les vacances en France, année par année, sur deux cartes interactives.
 
 👉 **Ouvrir l'appli : https://ratchetlegacy.github.io/voyages/**
 

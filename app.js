@@ -10,6 +10,7 @@ function lireLocal(){try{return JSON.parse(localStorage.getItem(CLE_LOCALE)||'[]
 function ecrireLocal(l){try{localStorage.setItem(CLE_LOCALE,JSON.stringify(l));return true}catch(e){return false}}
 function nouvelId(){return (crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2))}
 async function rpcLocal(nom,args){
+  if(nom.indexOf('projets_')===0)return rpcProjetsLocal(nom,args);
   var l=lireLocal();
   if(nom==='voyages_liste')return{data:l.slice().sort(function(a,b){return b.annee-a.annee})};
   if(nom==='voyages_supprimer'){l=l.filter(function(r){return r.id!==args.p_id});return ecrireLocal(l)?{data:null}:{error:{message:'stockage'}}}
@@ -76,9 +77,9 @@ document.querySelectorAll('[data-logout]').forEach(function(b){if(LOCAL){b.textC
 
 function vue(v){['vLogin','vApp'].forEach(function(id){$(id).hidden=id!==v})}
 function demarrer(){
-  if(LOCAL){vue('vApp');initCartes();charger();return}
+  if(LOCAL){vue('vApp');initCartes();charger();chargerProjets();return}
   if(!TOKEN){vue('vLogin');return}
-  vue('vApp');initCartes();charger();
+  vue('vApp');initCartes();charger();chargerProjets();
 }
 
 /* ---------- Données ---------- */
@@ -88,7 +89,7 @@ async function charger(){
   if(r.error){$('etat').textContent='Impossible de charger les voyages. Vérifiez votre connexion.';return}
   $('etat').textContent='';S.rows=r.data||[];render();
 }
-document.addEventListener('visibilitychange',function(){if(!document.hidden&&!$('vApp').hidden)charger()});
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&!$('vApp').hidden){charger();chargerProjets()}});
 
 function visibles(type){
   return S.rows.filter(function(r){
@@ -182,6 +183,9 @@ function render(){
   document.querySelectorAll('.prof').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.p===S.profil)});
   document.querySelectorAll('.bar .seg button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.t===S.type)});
   $('incW').hidden=S.profil==='ensemble';
+  var pj=S.type==='projets';$('vProjets').hidden=!pj;document.querySelector('.profils').hidden=pj;$('fab').textContent=pj?'+ Projet':'+ Ajouter';
+  if(pj){$('incW').hidden=true;$('map').hidden=true;document.querySelector('.stats').hidden=true;$('liste').hidden=true;$('vStats').hidden=true;$('etat').hidden=true;renderProjets();return}
+  $('etat').hidden=false;
   if(!M.monde)return;
   var st=S.type==='stats';$('map').hidden=st;document.querySelector('.stats').hidden=st;$('liste').hidden=st;$('vStats').hidden=!st;
   if(st){renderStats();return}
@@ -218,7 +222,7 @@ $('liste').onclick=async function(e){
 
 /* ---------- Fenêtre d'ajout ---------- */
 function ouvrir(r){
-  S.edit=r?r.id:null;S.f={who:r?r.profil:S.profil,type:r?r.type:(S.type==='stats'?'monde':S.type),coord:r&&r.lat!=null?{lat:r.lat,lon:r.lon}:null};
+  S.edit=r?r.id:null;S.f={who:r?r.profil:S.profil,type:r?r.type:(S.type==='stats'||S.type==='projets'?'monde':S.type),coord:r&&r.lat!=null?{lat:r.lat,lon:r.lon}:null};
   $('fd').value=r?ecrireDate(r.debut||String(r.annee)):'';$('ff').value=r?ecrireDate(r.fin):'';$('fv').value=r?(r.ville||''):'';$('sugg2').innerHTML='';
   $('fl').value=r?r.lieu:'';$('fr').value=r?(r.raison||''):'';
   $('ft').textContent=r?'Modifier le voyage':'Ajouter un voyage';$('fs').textContent=r?'Enregistrer':'Ajouter';$('fm').textContent='';$('sugg').innerHTML='';
@@ -233,7 +237,7 @@ function majForm(){
   if(S.f.type==='monde'){var p=pays($('fl').value);c.textContent=$('fl').value.trim()?(p?(S.f.coord?'📍 '+$('fv').value.trim()+' placé sur la carte':flag(p.a2)+' '+p.nom+' : point au centre du pays'+($('fv').value.trim()?' (choisissez la ville dans la liste pour la placer)':'')):'Pays non reconnu : choisissez-le dans la liste.'):''}
   else c.textContent=S.f.coord?'📍 Placé sur la carte':($('fl').value.trim()?'Choisissez une suggestion, ou placez le point sur la carte après l’ajout.':'');
 }
-$('fab').onclick=function(){ouvrir(null)};
+$('fab').onclick=function(){if(S.type==='projets')ouvrirProjet(null);else ouvrir(null)};
 $('fc').onclick=fermer;
 $('sheet').addEventListener('click',function(e){if(e.target===this)fermer()});
 $('who').onclick=function(e){var b=e.target.closest('button');if(!b)return;S.f.who=b.dataset.w;majForm()};
@@ -286,8 +290,6 @@ $('f').onsubmit=async function(e){e.preventDefault();var m=$('fm');m.textContent
 /* ---------- Application installable ---------- */
 if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
 
-/* ---------- Lancement ---------- */
-demarrer();
 
 $('f').addEventListener('input',function(){$('fm').textContent=''});
 
@@ -366,3 +368,121 @@ $('dep').addEventListener('input',function(){clearTimeout(tmrD);var q=this.value
       if(r2.ok)res=res.concat((await r2.json()).map(function(x){var ad=x.address||{};return{nom:x.name||q,sub:ad.country||'',lat:+x.lat,lon:+x.lon}}))}catch(e){}
     if(my!==reqD)return;$('depS').innerHTML=res.map(function(s,i){return '<button type="button" data-i="'+i+'">'+esc(s.nom)+(s.sub?' <small>'+esc(s.sub)+'</small>':'')+'</button>'}).join('');$('depS')._l=res},300)});
 $('depS').onclick=function(e){var b=e.target.closest('button');if(!b)return;var s=this._l[+b.dataset.i];DEP={nom:s.nom,lat:s.lat,lon:s.lon};try{localStorage.setItem('voyages-depart',JSON.stringify(DEP))}catch(x){}this.innerHTML='';renderStats()};
+
+/* ---------- Projets & budgets ---------- */
+var CATS={voyage:'✈️ Voyage',maison:'🏠 Maison',achat:'🛍️ Achat',sortie:'🎉 Sortie',loisirs:'🎮 Loisirs',cadeau:'🎁 Cadeau',autre:'📌 Autre'};
+var STATUTS={idee:'💡 Idée',prevu:'📅 Prévu',encours:'🔨 En cours',fait:'✅ Fait'};
+var PAYEURS={commun:'Commun',chloe:'Chloé',mathieu:'Mathieu'};
+var P={rows:[],charge:false,err:'',filtre:'actifs',edit:null,dep:[],statut:'idee',payeur:'commun',delAsk:false};
+function eur(n){n=+n||0;return n.toLocaleString('fr-FR',{style:'currency',currency:'EUR',minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})}
+function montant(v){var t=String(v==null?'':v).replace(/[\s€]/g,'').replace(',','.');if(!t)return 0;var n=parseFloat(t);return isFinite(n)&&n>=0?Math.round(n*100)/100:null}
+function enChamp(n){return +n?String(+n).replace('.',','):''}
+function totalDep(p){return (p.depenses||[]).reduce(function(s,d){return s+(+d.montant||0)},0)}
+
+var CLE_PROJETS='voyages-projets-local-v1';
+function rpcProjetsLocal(nom,args){var l;try{l=JSON.parse(localStorage.getItem(CLE_PROJETS)||'[]')}catch(e){l=[]}
+  function ecr(v){try{localStorage.setItem(CLE_PROJETS,JSON.stringify(l));return{data:v}}catch(e){return{error:{message:'stockage'}}}}
+  if(nom==='projets_liste')return{data:l};
+  if(nom==='projets_supprimer'){l=l.filter(function(r){return r.id!==args.p_id});return ecr(null)}
+  if(nom==='projets_enregistrer'){var now=new Date().toISOString(),id=args.p_id;
+    if(!id){id=nouvelId();l.unshift(Object.assign({id:id,cree_le:now,maj_le:now},args.p_data))}
+    else l=l.map(function(r){return r.id===id?Object.assign({},r,args.p_data,{maj_le:now}):r});
+    return ecr(id)}
+  return{data:null}}
+
+async function chargerProjets(){
+  var r=await rpc('projets_liste');
+  if(!TOKEN&&!LOCAL)return;
+  if(r.error)P.err='Impossible de charger les projets. Vérifiez votre connexion.';else{P.err='';P.rows=r.data||[]}
+  P.charge=true;if(S.type==='projets')renderProjets();
+}
+
+function renderProjets(){
+  document.querySelectorAll('#pFiltre button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.f===P.filtre)});
+  var actifs=P.rows.filter(function(p){return p.statut!=='fait'});
+  var budget=actifs.reduce(function(s,p){return s+(+p.budget||+p.estimation||0)},0);
+  var tot=0,pc=0,pm=0;
+  P.rows.forEach(function(p){(p.depenses||[]).forEach(function(d){var m=+d.montant||0;tot+=m;if(d.qui==='chloe')pc+=m;else if(d.qui==='mathieu')pm+=m})});
+  var diff=(pc-pm)/2,eq=Math.abs(diff)<0.5?'Vous êtes quittes 🤝':diff>0?'Mathieu doit '+eur(diff)+' à Chloé':'Chloé doit '+eur(-diff)+' à Mathieu';
+  $('pKpi').innerHTML='<div class="k big"><b>'+eur(tot)+'</b><span>dépensés au total · Chloé '+eur(pc)+' · Mathieu '+eur(pm)+' · commun '+eur(tot-pc-pm)+'</span></div>'+
+    '<div class="k"><b>'+actifs.length+'</b><span>projet'+(actifs.length>1?'s':'')+' en cours ou à venir</span></div>'+
+    '<div class="k"><b>'+eur(budget)+'</b><span>de budget prévu pour ces projets</span></div>'+
+    '<div class="k" style="grid-column:span 2"><b style="font-size:19px;white-space:normal">'+eq+'</b><span>si toutes les dépenses sont partagées moitié-moitié</span></div>';
+  var L=P.rows.filter(function(p){return P.filtre==='tous'||(P.filtre==='fait'?p.statut==='fait':p.statut!=='fait')});
+  var ord={encours:0,prevu:1,idee:2,fait:3};
+  L.sort(function(a,b){return (ord[a.statut]-ord[b.statut])||((b.priorite||0)-(a.priorite||0))||String(a.echeance||'9999').localeCompare(String(b.echeance||'9999'))});
+  var box=$('pListe');
+  if(P.err){box.innerHTML='<p class="etat">'+esc(P.err)+'</p>';return}
+  if(!P.charge){box.innerHTML='<p class="etat">Chargement…</p>';return}
+  if(!L.length){box.innerHTML='<div class="vide"><b>'+(P.rows.length?'Rien dans cette liste':'Aucun projet pour l’instant')+'</b>'+(P.rows.length?'Changez de filtre pour voir les autres projets.':'Touchez « + Projet » pour noter le premier : un voyage, un meuble, une sortie…')+'</div>';return}
+  box.innerHTML='<div class="pj-liste">'+L.map(cartePj).join('')+'</div>';
+}
+function cartePj(p){
+  var dep=totalDep(p),ref=+p.budget||+p.estimation||0,pct=ref?Math.min(100,dep/ref*100):0,st=STATUTS[p.statut]?p.statut:'idee';
+  return '<button type="button" class="pj" data-id="'+esc(p.id)+'"><div class="pj-h"><div><div class="pj-c">'+(CATS[p.categorie]||CATS.autre)+' · '+'★'.repeat(Math.min(3,Math.max(1,p.priorite||2)))+'</div><b>'+esc(p.titre)+'</b></div><span class="pj-s '+st+'">'+STATUTS[st]+'</span></div>'+
+    '<div class="pj-n">'+(+p.estimation?'<span>Estimé <b>'+eur(p.estimation)+'</b></span>':'')+(+p.budget?'<span>Budget <b>'+eur(p.budget)+'</b></span>':'')+'<span>Dépensé <b>'+eur(dep)+'</b></span></div>'+
+    (ref?'<div class="jauge"><i class="'+(dep>ref?'trop':'')+'" style="width:'+pct.toFixed(1)+'%"></i></div>':'')+
+    (p.echeance?'<div class="pj-c">📆 '+joliDate(p.echeance)+'</div>':'')+'</button>';
+}
+$('pFiltre').onclick=function(e){var b=e.target.closest('button');if(!b)return;P.filtre=b.dataset.f;renderProjets()};
+$('pListe').onclick=function(e){var c=e.target.closest('.pj');if(!c)return;var p=P.rows.find(function(x){return x.id===c.dataset.id});if(p)ouvrirProjet(p)};
+
+/* fenêtre projet */
+$('pCat').innerHTML=Object.keys(CATS).map(function(k){return '<option value="'+k+'">'+CATS[k]+'</option>'}).join('');
+$('pSt').innerHTML=Object.keys(STATUTS).map(function(k){return '<button type="button" data-s="'+k+'">'+STATUTS[k]+'</button>'}).join('');
+$('dQui').innerHTML=Object.keys(PAYEURS).map(function(k){return '<button type="button" data-q="'+k+'">'+PAYEURS[k]+'</button>'}).join('');
+function ouvrirProjet(p){
+  P.edit=p?p.id:null;P.dep=p?JSON.parse(JSON.stringify(p.depenses||[])):[];P.statut=p&&STATUTS[p.statut]?p.statut:'idee';P.delAsk=false;
+  $('pT').value=p?p.titre:'';$('pCat').value=p&&CATS[p.categorie]?p.categorie:'voyage';$('pPrio').value=String(p?(p.priorite||2):2);
+  $('pEst').value=p?enChamp(p.estimation):'';$('pBud').value=p?enChamp(p.budget):'';$('pEch').value=p?ecrireDate(p.echeance):'';$('pNotes').value=p?(p.notes||''):'';
+  $('dL').value='';$('dM').value='';$('dD').value='';
+  $('pTitre').textContent=p?'Modifier le projet':'Nouveau projet';$('pOk').textContent=p?'Enregistrer':'Ajouter';
+  $('pDel').hidden=!p;$('pDel').textContent='Supprimer ce projet';$('pDel').className='btn ghost';$('pMsg').textContent='';
+  majProjet();$('pSheet').hidden=false;if(!p)setTimeout(function(){$('pT').focus()},50);
+}
+function fermerProjet(){$('pSheet').hidden=true}
+function majProjet(){
+  document.querySelectorAll('#pSt button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.s===P.statut)});
+  document.querySelectorAll('#dQui button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.q===P.payeur)});
+  var t=P.dep.reduce(function(s,d){return s+(+d.montant||0)},0);
+  $('pDeps').innerHTML=P.dep.length?P.dep.map(function(d,i){return '<div class="dep"><div>'+esc(d.libelle||'Dépense')+'<small>'+esc(PAYEURS[d.qui]||'Commun')+(d.date?' · '+joliDate(d.date):'')+'</small></div><b>'+eur(d.montant)+'</b><button type="button" data-i="'+i+'" aria-label="Retirer">✕</button></div>'}).join('')+
+    '<div class="dep"><b>Total</b><b>'+eur(t)+'</b><span></span></div>':'<p class="aide" style="margin:0">Aucune dépense pour l’instant. Ajoutez-les au fur et à mesure.</p>';
+}
+function ajouterDep(){
+  var m=montant($('dM').value),dt=lireDate($('dD').value);
+  if(!m){$('pMsg').textContent='Indiquez le montant de la dépense.';$('dM').focus();return false}
+  if(dt===null){$('pMsg').textContent='Date de la dépense non reconnue. Écrivez par exemple 12/03/2025.';return false}
+  P.dep.push({id:nouvelId(),libelle:$('dL').value.trim(),montant:m,qui:P.payeur,date:dt||new Date().toISOString().slice(0,10)});
+  $('dL').value='';$('dM').value='';$('dD').value='';$('pMsg').textContent='';majProjet();return true;
+}
+$('pSt').onclick=function(e){var b=e.target.closest('button');if(!b)return;P.statut=b.dataset.s;majProjet()};
+$('dQui').onclick=function(e){var b=e.target.closest('button');if(!b)return;P.payeur=b.dataset.q;majProjet()};
+$('dAj').onclick=function(){if(ajouterDep())$('dL').focus()};
+['dL','dM','dD'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();if(ajouterDep())$('dL').focus()}})});
+$('pDeps').onclick=function(e){var b=e.target.closest('button[data-i]');if(!b)return;P.dep.splice(+b.dataset.i,1);majProjet()};
+$('pX').onclick=fermerProjet;
+$('pSheet').addEventListener('click',function(e){if(e.target===this)fermerProjet()});
+$('pf').addEventListener('input',function(){$('pMsg').textContent=''});
+$('pf').onsubmit=async function(e){e.preventDefault();var m=$('pMsg');m.textContent='';
+  var titre=$('pT').value.trim();if(!titre){m.textContent='Donnez un nom au projet.';$('pT').focus();return}
+  var est=montant($('pEst').value),bud=montant($('pBud').value);
+  if(est===null||bud===null){m.textContent='Montant non reconnu : écrivez seulement un nombre, par exemple 350 ou 89,90.';return}
+  var ech=lireDate($('pEch').value);if(ech===null){m.textContent='Échéance non reconnue. Écrivez par exemple 15/06/2027, 06/2027 ou 2027.';return}
+  if($('dM').value.trim()&&!ajouterDep())return;
+  var d={titre:titre,categorie:$('pCat').value,statut:P.statut,estimation:est,budget:bud,echeance:ech||'',priorite:+$('pPrio').value,notes:$('pNotes').value.trim(),depenses:P.dep};
+  $('pOk').disabled=true;
+  var r=await rpc('projets_enregistrer',{p_id:P.edit||null,p_data:d});
+  $('pOk').disabled=false;
+  if(r.error){m.textContent='L’enregistrement n’a pas marché. Vérifiez votre connexion et réessayez.';return}
+  fermerProjet();await chargerProjets();
+};
+$('pDel').onclick=async function(){
+  if(!P.edit)return;
+  if(!P.delAsk){P.delAsk=true;this.textContent='Confirmer la suppression';this.className='btn rouge';return}
+  this.disabled=true;var r=await rpc('projets_supprimer',{p_id:P.edit});this.disabled=false;
+  if(r.error){$('pMsg').textContent='La suppression n’a pas marché.';return}
+  fermerProjet();await chargerProjets();
+};
+
+/* ---------- Lancement ---------- */
+demarrer();

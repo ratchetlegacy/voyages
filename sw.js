@@ -1,5 +1,5 @@
 /* Garde l'appli disponible même avec une connexion faible */
-var CACHE='voyages-v6';
+var CACHE='voyages-v7';
 var FICHIERS=['./','index.html','app.js','data.js','manifest.json','hors-ligne.html','manifest-local.json','supabase.js','d3-array.min.js','d3-geo.min.js','topojson-client.min.js','icon-192.png'];
 self.addEventListener('install',function(e){e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(FICHIERS)}));self.skipWaiting()});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(k){return Promise.all(k.filter(function(n){return n!==CACHE}).map(function(n){return caches.delete(n)}))}));self.clients.claim()});

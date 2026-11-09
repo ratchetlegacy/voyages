@@ -155,6 +155,33 @@ input:focus{outline:none;border-color:var(--stamp)}
 .dl b{font-weight:700;overflow-wrap:anywhere}.dl small{color:var(--muted);grid-column:1/-1}
 .dl span{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
 .etat:empty{display:none}
+/* Projets & budgets */
+.bar .seg button{padding:8px 13px}
+#vProjets{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+#vProjets[hidden]{display:none}
+.pj-liste{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.pj{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left}
+.pj-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.pj-h b{display:block;font:800 18px/1.2 var(--disp);overflow-wrap:anywhere}
+.pj-c{font-size:13px;color:var(--muted);font-weight:600}
+.pj-s{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;background:var(--soft);color:var(--muted)}
+.pj-s.encours{background:color-mix(in srgb,var(--stamp) 16%,transparent);color:var(--stamp)}
+.pj-s.prevu{background:color-mix(in srgb,var(--mathieu) 16%,transparent);color:var(--mathieu)}
+.pj-s.fait{background:color-mix(in srgb,var(--deux) 16%,transparent);color:var(--deux)}
+.pj-n{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13.5px;color:var(--muted)}
+.pj-n b{color:var(--ink);font-variant-numeric:tabular-nums}
+.jauge{height:8px;border-radius:5px;background:var(--soft);overflow:hidden}
+.jauge i{display:block;height:100%;background:var(--deux);border-radius:5px}
+.jauge i.trop{background:var(--stamp)}
+.lbl2{font-size:13.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+textarea{padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);width:100%;font:inherit;font-size:16px;color:inherit;min-height:80px;resize:vertical}
+textarea:focus{outline:none;border-color:var(--stamp)}
+.dep{display:grid;grid-template-columns:1fr auto auto;gap:4px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px}
+.dep small{color:var(--muted);display:block;font-size:12.5px}
+.dep b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.dep button{border:0;background:transparent;color:var(--muted);font-size:15px;padding:4px 8px}
+.dep-aj{display:grid;grid-template-columns:3fr 2fr;gap:8px}
+.btn.rouge{background:var(--stamp);color:#fff;border-color:var(--stamp)}
 </style>
 </head>
 <body>
@@ -185,6 +212,7 @@ input:focus{outline:none;border-color:var(--stamp)}
         <button data-t="monde" aria-pressed="true">Monde</button>
         <button data-t="france" aria-pressed="false">France</button>
         <button data-t="stats" aria-pressed="false">Stats</button>
+        <button data-t="projets" aria-pressed="false">Projets</button>
       </div>
       <label class="toggle" id="incW" hidden><input type="checkbox" id="inc" checked>Avec les voyages à deux</label>
     </div>
@@ -216,6 +244,11 @@ input:focus{outline:none;border-color:var(--stamp)}
       <div class="bloc"><h3 id="distT">Distances depuis le point de départ</h3><div id="dist"></div>
         <p class="aide">Estimations à vol d’oiseau. Vol : environ 800 km/h, plus 30 min de décollage et d’atterrissage. Route : distance × 1,3 à 80 km/h de moyenne.</p></div>
     </section>
+    <section id="vProjets" hidden>
+      <div class="grid" id="pKpi"></div>
+      <div class="seg" id="pFiltre" style="align-self:flex-start"><button type="button" data-f="actifs">En cours &amp; à venir</button><button type="button" data-f="fait">Faits</button><button type="button" data-f="tous">Tous</button></div>
+      <div id="pListe"></div>
+    </section>
     <div id="liste"></div>
   </div>
   <button class="fab" id="fab">+ Ajouter</button>
@@ -230,6 +263,35 @@ input:focus{outline:none;border-color:var(--stamp)}
     <p class="msg ok" id="sMsg" role="status"></p>
     <button class="btn ghost" id="sauvX" type="button">Fermer</button>
   </div>
+</div>
+
+<div class="sheet-bg" id="pSheet" hidden>
+  <form class="sheet" id="pf" autocomplete="off">
+    <h3 id="pTitre">Nouveau projet</h3>
+    <label>Projet<input id="pT" maxlength="200" placeholder="Ex. : week-end à Bordeaux, nouveau canapé…"></label>
+    <div class="dates">
+      <label>Catégorie<select id="pCat"></select></label>
+      <label>Envie<select id="pPrio"><option value="1">★ Pourquoi pas</option><option value="2">★★ Envie</option><option value="3">★★★ Très envie</option></select></label>
+    </div>
+    <div><div class="lbl2">Statut</div><div class="who" id="pSt"></div></div>
+    <div class="dates">
+      <label>Coût estimé (€)<input id="pEst" inputmode="decimal" placeholder="0"></label>
+      <label>Budget fixé (€)<input id="pBud" inputmode="decimal" placeholder="0"></label>
+    </div>
+    <label><span>Échéance <span style="font-weight:400">(facultatif)</span></span><input id="pEch" inputmode="numeric" placeholder="jj/mm/aaaa, 06/2027 ou 2027" maxlength="10"></label>
+    <label><span>Notes <span style="font-weight:400">(facultatif)</span></span><textarea id="pNotes" maxlength="4000" placeholder="Idées, liens, options à comparer…"></textarea></label>
+    <div class="bloc" style="padding:12px;gap:8px;background:var(--bg)">
+      <h3 style="font-size:17px">Dépenses réelles</h3>
+      <div id="pDeps"></div>
+      <div class="dep-aj"><input id="dL" maxlength="120" placeholder="Quoi ? (billets, acompte…)"><input id="dM" inputmode="decimal" placeholder="Montant €"></div>
+      <div class="lbl2" style="margin:2px 0 -2px">Qui a payé ?</div>
+      <div class="who" id="dQui"></div>
+      <div class="dep-aj"><input id="dD" inputmode="numeric" maxlength="10" placeholder="Date (facultatif)"><button class="btn ghost" type="button" id="dAj" style="color:var(--ink)">+ Ajouter</button></div>
+    </div>
+    <p class="msg" id="pMsg" role="status"></p>
+    <div class="foot"><button class="btn ghost" type="button" id="pX">Annuler</button><button class="btn" type="submit" id="pOk">Ajouter</button></div>
+    <button class="btn ghost" type="button" id="pDel" hidden>Supprimer ce projet</button>
+  </form>
 </div>
 
 <div class="sheet-bg" id="sheet" hidden>

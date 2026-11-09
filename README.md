@@ -11,6 +11,7 @@ Carnet de voyages de Chloé et Mathieu : tous les voyages à l'étranger et les 
 - Trois profils : Chloé, Mathieu et les voyages à deux
 - Ajout d'un voyage : année, pays ou ville, raison du voyage
 - Recherche de n'importe quelle ville de France, placée automatiquement sur la carte
+- Onglet **Projets** : projets à deux (voyages, maison, achats, sorties…), coût estimé, budget, dépenses réelles avec qui a payé, et équilibre entre Chloé et Mathieu
 - Données synchronisées entre les téléphones
 - Installable sur téléphone comme une vraie application
 
